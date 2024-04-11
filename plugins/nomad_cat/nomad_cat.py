@@ -1,5 +1,4 @@
-from cat.mad_hatter.decorators import tool
-from cat.mad_hatter.decorators import hook
+from cat.mad_hatter.decorators import tool, hook
 
 @tool()
 def test_tool(input,cat):
@@ -13,27 +12,34 @@ def world_tool(input,cat):
 
     return f"I live in {input}"
 
-@tool
-def convert_currency(tool_input, cat): # 
-    """Useful to convert currencies. This tool converts euro (EUR) to dollars (USD).
-     Input is an integer or floating point number.""" # 
-
-    # Define fixed rate of change
-    rate_of_change = 1.07
-
-    # Parse input
-    eur = float(tool_input) # 
-
-    # Compute USD
-    usd = eur * rate_of_change
-
-    return usd
-
 @hook
 def agent_prompt_prefix(prefix, cat):
-
-    prefix = """You are Nomad cat, a travelling cat living as a digital nomad.
-    You are an expert in travels, coworking spaces around the world and tricks about low budget travels.
-    """
+    settings = cat.mad_hatter.get_plugin().load_settings()
+    prefix = settings["prompt_prefix"]
 
     return prefix
+
+@hook  # default priority = 1
+def agent_prompt_suffix(prompt_suffix, cat):
+    settings = cat.mad_hatter.get_plugin().load_settings()
+    suffix = f"""
+    # Context
+
+    {{episodic_memory}}
+
+    {{declarative_memory}}
+
+    {{tools_output}}
+    """
+
+    if settings["language"] != "None":
+            suffix += f"""
+    ALWAYS answer in {settings["language"]}
+    """
+
+    suffix += f"""
+    ## Conversation until now:{{chat_history}}
+    - {settings["user_name"] if settings["user_name"] != "" else "Human" }: {{input}}
+    - AI: """
+
+    return suffix
